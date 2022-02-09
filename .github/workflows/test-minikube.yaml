@@ -1,0 +1,39 @@
+name: test-minikube
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: The tag to use for this release"
+        required: true
+        default: v0.1.0
+jobs:
+  release_info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: start minikube
+        id: minikube
+        uses: medyagh/setup-minikube@latest
+      - uses: actions/checkout@v2
+      - name: deploy a webapp
+        run: |
+          ls
+          ls yamls/
+          cat yamls/deployment.yaml
+          cat yamls/service.yaml
+          kubectl apply -f yamls/
+          sleep 3
+          # curl $(minikube ip):8080
+          minikube service list
+          minikube service webapp --url
+          kubectl get svc
+          myip="$(kubectl get svc webapp -o 'go-template={{ .spec.clusterIP }}')"
+          echo "myip is $myip"
+          minikube addons enable ingress
+          minikube addons enable ingress-dns
+          minikube tunnel &
+          sleep 2
+          echo "curling through tunnel"
+          curl localhost
+          echo "------------------opening the service------------------"
+          minikube ssh -- curl "${myip}:8080"
